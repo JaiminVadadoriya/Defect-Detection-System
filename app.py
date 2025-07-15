@@ -1,7 +1,5 @@
 import streamlit as st
 import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -56,8 +54,9 @@ st.markdown("""
 @st.cache_resource
 def load_defect_model():
     try:
-        model = load_model('neu_model.keras')
-        return model
+        interpreter = tf.lite.Interpreter(model_path='neu_model.tflite')
+        interpreter.allocate_tensors()
+        return interpreter
     except Exception as e:
         st.error(f"Error loading model: {e}")
         st.error("Please make sure 'neu_model.keras' is in the same directory as this app.")
@@ -79,14 +78,21 @@ def preprocess_image(img):
     
     return img_array
 
-def predict_defect(model, img_array):
+def predict_defect(interpreter, img_array):
     """Make prediction on preprocessed image"""
     try:
-        predictions = model.predict(img_array, verbose=0)
-        predicted_class = np.argmax(predictions[0])
-        confidence = predictions[0][predicted_class]
-        
-        return predicted_class, confidence, predictions[0]
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+
+        # Ensure correct input type and shape
+        input_data = img_array.astype(np.float32)
+        interpreter.set_tensor(input_details[0]['index'], input_data)
+        interpreter.invoke()
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+
+        predicted_class = np.argmax(output_data[0])
+        confidence = output_data[0][predicted_class]
+        return predicted_class, confidence, output_data[0]
     except Exception as e:
         st.error(f"Error during prediction: {e}")
         return None, None, None

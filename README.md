@@ -79,7 +79,7 @@ Make sure the following files are in the same directory as your `app.py` file:
 ```
 project/
 ├── app.py             (Streamlit app)
-├── neu_model.keras    (Your trained model file)
+├── neu_model.tflite    (Your trained model file)
 └── requirements.txt   (Optional, but recommended)
 ```
 
